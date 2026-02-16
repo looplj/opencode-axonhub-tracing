@@ -1,30 +1,29 @@
-import type { Hooks, PluginInput } from "@opencode-ai/plugin"
+import type { Plugin } from "@opencode-ai/plugin"
 
-/**
- * OpenCode plugin for AxonHub tracing.
- *
- * Automatically injects AH-Trace-Id header into all AI provider requests for
- * AxonHub trace aggregation. This allows AxonHub to group requests from the
- * same OpenCode session into a single trace.
- *
- * ## Configuration
- *
- * Add to your `.opencode/config.json`:
- *
- * ```json
- * {
- *   "plugin": ["opencode-axonhub-tracing"]
- * }
- * ```
- */
-export default async function AxonHubTracing(_input: PluginInput): Promise<Hooks> {
+const DEFAULT_THREAD_HEADER = "AH-Thread-Id"
+const DEFAULT_TRACE_HEADER = "AH-Trace-Id"
+
+function resolveHeaderKey(envValue: string | undefined, fallback: string): string {
+  const value = typeof envValue === "string" ? envValue.trim() : ""
+  return value ? value : fallback
+}
+
+const OpenCodeAxonHubTracing: Plugin = async (_input) => {
   return {
-    // Inject tracing headers into chat requests
-    "chat.headers": async (input: any, output: any) => {
-      // Set AH-Trace-Id header for AxonHub trace aggregation
-      if (input.sessionID) {
-        output.headers["AH-Trace-Id"] = input.sessionID
+    "chat.headers": async (input, output) => {
+      if (!input?.sessionID || !output?.headers) return
+
+      const threadHeader = resolveHeaderKey(process.env.OPENCODE_AXONHUB_TRACING_THREAD_HEADER, DEFAULT_THREAD_HEADER)
+      const traceHeader = resolveHeaderKey(process.env.OPENCODE_AXONHUB_TRACING_TRACE_HEADER, DEFAULT_TRACE_HEADER)
+
+      output.headers[threadHeader] = input.sessionID
+
+      const traceID = input.message?.id
+      if (traceID) {
+        output.headers[traceHeader] = traceID
       }
     },
-  } as any
+  }
 }
+
+export default OpenCodeAxonHubTracing
