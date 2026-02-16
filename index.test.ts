@@ -72,6 +72,19 @@ describe("chat.headers hook", () => {
     expect(output.headers["AH-Trace-Id"]).toBeUndefined()
   })
 
+  it("only injects thread header when message exists without id", async () => {
+    const hook = await getHeadersHook()
+    const output = { headers: {} as Record<string, string> }
+
+    await hook(
+      { sessionID: "ses_empty_msg", message: {} } as any,
+      output,
+    )
+
+    expect(output.headers["AH-Thread-Id"]).toBe("ses_empty_msg")
+    expect(output.headers["AH-Trace-Id"]).toBeUndefined()
+  })
+
   it("does not throw when output.headers is missing", async () => {
     const hook = await getHeadersHook()
 
