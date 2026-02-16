@@ -1,18 +1,24 @@
 # opencode-axonhub-tracing
 
-An OpenCode plugin that automatically injects AxonHub tracing headers into your LLM requests. This allows AxonHub to group all requests from the same OpenCode session together for trace aggregation.
+OpenCode 插件：为每次 LLM 请求注入 trace headers。
 
-## Installation
+默认 header key 对齐 AxonHub：
+- `AH-Thread-Id` ← OpenCode `sessionID`
+- `AH-Trace-Id` ← OpenCode `message.id`
+
+同时保持通用能力：header key 可通过环境变量覆盖。
+
+## 安装
 
 ```bash
 npm install -g opencode-axonhub-tracing
-# or
+# 或
 bun add -g opencode-axonhub-tracing
 ```
 
-## Usage
+## 启用插件
 
-Add the plugin to your `opencode.json`:
+在 `opencode.json` 中添加：
 
 ```json
 {
@@ -21,20 +27,36 @@ Add the plugin to your `opencode.json`:
 }
 ```
 
-That's it! The plugin will automatically add:
-- `AH-Trace-Id` - Set to the current OpenCode session ID.
+## 配置（可选）
 
-## How It Works
+默认 key：
+- `AH-Thread-Id`
+- `AH-Trace-Id`
 
-1. The plugin hooks into the `chat.headers` event.
-2. It injects the `AH-Trace-Id` into the headers of every AI provider request.
-3. The trace ID is derived from the OpenCode `sessionID`, ensuring all requests in a single session are linked in AxonHub.
+可用环境变量覆盖：
 
-## Requirements
+- `OPENCODE_AXONHUB_TRACING_THREAD_HEADER`
+- `OPENCODE_AXONHUB_TRACING_TRACE_HEADER`
 
-- OpenCode 1.1.40 or later
-- An AxonHub setup
+示例：
 
-## License
+```bash
+export OPENCODE_AXONHUB_TRACING_THREAD_HEADER="X-Thread-Id"
+export OPENCODE_AXONHUB_TRACING_TRACE_HEADER="X-Trace-Id"
+```
 
-MIT
+说明：空字符串会自动回退到默认 key。
+
+## 行为说明
+
+- Thread ID：使用 OpenCode 的 `sessionID`
+- Trace ID：使用 OpenCode 当前用户消息 `message.id`
+- 若当前消息没有 `id`，仅注入 thread header
+
+## 开发
+
+```bash
+bun install
+bun test
+bun run build
+```
