@@ -1,4 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode/plugin"
 
 const DEFAULT_THREAD_HEADER = "AH-Thread-Id"
 const DEFAULT_TRACE_HEADER = "AH-Trace-Id"
@@ -8,22 +8,35 @@ function resolveHeaderKey(envValue: string | undefined, fallback: string): strin
   return value ? value : fallback
 }
 
-const OpenCodeAxonHubTracing: Plugin = async (_input) => {
-  return {
-    "chat.headers": async (input, output) => {
-      if (!input?.sessionID || !output?.headers) return
+const OpenCodeAxonHubTracing = Plugin.define({
+  id: "opencode-axonhub-tracing",
+  async setup(ctx) {
+    const threadHeader = resolveHeaderKey(process.env.OPENCODE_AXONHUB_TRACING_THREAD_HEADER, DEFAULT_THREAD_HEADER)
+    const traceHeader = resolveHeaderKey(process.env.OPENCODE_AXONHUB_TRACING_TRACE_HEADER, DEFAULT_TRACE_HEADER)
 
-      const threadHeader = resolveHeaderKey(process.env.OPENCODE_AXONHUB_TRACING_THREAD_HEADER, DEFAULT_THREAD_HEADER)
-      const traceHeader = resolveHeaderKey(process.env.OPENCODE_AXONHUB_TRACING_TRACE_HEADER, DEFAULT_TRACE_HEADER)
+    const traceBySession = new Map<string, string>()
 
-      output.headers[threadHeader] = input.sessionID
-
-      const traceID = input.message?.id
-      if (traceID) {
-        output.headers[traceHeader] = traceID
+    await ctx.session.hook("prompt", (event) => {
+      if (event.messageID) {
+        traceBySession.set(event.sessionID, event.messageID)
       }
-    },
-  }
-}
+    })
+
+    await ctx.session.hook("model.request", (event) => {
+      if (!event?.sessionID || !event?.headers) return
+
+      event.headers[threadHeader] = event.sessionID
+
+      const traceID = traceBySession.get(event.sessionID)
+      if (traceID) {
+        event.headers[traceHeader] = traceID
+      }
+    })
+
+    return () => {
+      traceBySession.clear()
+    }
+  },
+})
 
 export default OpenCodeAxonHubTracing

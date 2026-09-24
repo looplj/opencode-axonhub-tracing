@@ -1,12 +1,14 @@
 # opencode-axonhub-tracing
 
-OpenCode 插件：为每次 LLM 请求注入 trace headers。
+OpenCode **v2** 插件：为每次 LLM 请求注入 trace headers。
 
 默认 header key 对齐 AxonHub：
 - `AH-Thread-Id` ← OpenCode `sessionID`
-- `AH-Trace-Id` ← OpenCode `message.id`
+- `AH-Trace-Id` ← OpenCode 当前用户消息 `message.id`
 
 同时保持通用能力：header key 可通过环境变量覆盖。
+
+> 已升级支持 OpenCode v2。
 
 ## 安装
 
@@ -18,14 +20,16 @@ bun add -g opencode-axonhub-tracing
 
 ## 启用插件
 
-在 `opencode.json` 中添加：
+在 `opencode.json(c)` 中添加：
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-axonhub-tracing"]
+  "plugins": ["opencode-axonhub-tracing"]
 }
 ```
+
+> v2 的配置项是 `plugins`（复数），且条目为字符串或 `{ "package": ..., "options": {...} }` 对象。
 
 ## 配置（可选）
 
@@ -50,8 +54,9 @@ export OPENCODE_AXONHUB_TRACING_TRACE_HEADER="X-Trace-Id"
 ## 行为说明
 
 - Thread ID：使用 OpenCode 的 `sessionID`
-- Trace ID：使用 OpenCode 当前用户消息 `message.id`
-- 若当前消息没有 `id`，仅注入 thread header
+- Trace ID：使用当前 session 最新一条用户消息的 `message.id`
+- 若该 session 尚未经过 prompt hook（例如 compaction / title 等辅助请求），仅注入 thread header
+- 每条用户消息产生一个独立 trace
 
 ## 开发
 
@@ -59,4 +64,5 @@ export OPENCODE_AXONHUB_TRACING_TRACE_HEADER="X-Trace-Id"
 bun install
 bun test
 bun run build
+bunx tsc --noEmit
 ```

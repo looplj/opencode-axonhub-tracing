@@ -1,26 +1,31 @@
 {
   "name": "opencode-axonhub-tracing",
-  "version": "1.1.0",
-  "description": "OpenCode plugin for generic trace header injection (default AxonHub headers)",
+  "version": "2.0.0",
+  "description": "OpenCode v2 plugin for generic trace header injection (default AxonHub headers)",
   "type": "module",
   "publishConfig": {
     "access": "public"
   },
+  "server": "./dist/index.js",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./server": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "bun build index.ts --outdir dist --target node && bunx tsc -p tsconfig.build.json",
+    "build": "bun build index.ts --outdir dist --target node --external '@opencode/*' && bunx tsc -p tsconfig.build.json",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
     "prepublishOnly": "bun run build"
@@ -43,11 +48,11 @@
   },
   "homepage": "https://github.com/looplj/opencode-axonhub-tracing#readme",
   "peerDependencies": {
-    "@opencode-ai/plugin": ">=1.0.0",
+    "@opencode/plugin": ">=2.0.0",
     "typescript": ">=5.0.0"
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "^1.0.150",
+    "@opencode/plugin": "^2.0.15",
     "@types/bun": "^1.3.1",
     "@types/node": "^25.2.3",
     "typescript": "^5.9.3"
