@@ -3,8 +3,9 @@
 OpenCode 插件：为每次 LLM 请求注入 trace headers。
 
 默认 header key 对齐 AxonHub：
+
 - `AH-Thread-Id` ← OpenCode `sessionID`
-- `AH-Trace-Id` ← OpenCode `message.id`
+- `AH-Trace-Id` ← OpenCode prompt `messageID`
 
 同时保持通用能力：header key 可通过环境变量覆盖。
 
@@ -23,13 +24,14 @@ bun add -g opencode-axonhub-tracing
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-axonhub-tracing"]
+  "plugins": ["opencode-axonhub-tracing"]
 }
 ```
 
 ## 配置（可选）
 
 默认 key：
+
 - `AH-Thread-Id`
 - `AH-Trace-Id`
 
@@ -50,8 +52,9 @@ export OPENCODE_AXONHUB_TRACING_TRACE_HEADER="X-Trace-Id"
 ## 行为说明
 
 - Thread ID：使用 OpenCode 的 `sessionID`
-- Trace ID：使用 OpenCode 当前用户消息 `message.id`
-- 若当前消息没有 `id`，仅注入 thread header
+- Trace ID：记录当前会话最近一次 prompt 的 `messageID`
+- 若当前会话还没有 prompt，或请求没有对应的消息 ID，仅注入 thread header
+- V2 使用 `session.hook("prompt")` 和 `session.hook("model.request")` 注入请求 header
 
 ## 开发
 

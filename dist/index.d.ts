@@ -1,3 +1,3 @@
-import type { Plugin } from "@opencode-ai/plugin";
-declare const OpenCodeAxonHubTracing: Plugin;
+import { Plugin } from "@opencode/plugin";
+declare const OpenCodeAxonHubTracing: Plugin.Plugin;
 export default OpenCodeAxonHubTracing;

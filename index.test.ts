@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test"
 import OpenCodeAxonHubTracing from "./index"
 
+type Hook = (event: any) => unknown
+
 const originalThreadHeader = process.env.OPENCODE_AXONHUB_TRACING_THREAD_HEADER
 const originalTraceHeader = process.env.OPENCODE_AXONHUB_TRACING_TRACE_HEADER
 
@@ -18,119 +20,95 @@ function resetEnv() {
   }
 }
 
+function createPluginContext() {
+  const hooks: Record<string, Hook> = {}
+  const context = {
+    session: {
+      hook: async (name: string, hook: Hook) => {
+        hooks[name] = hook
+      },
+    },
+  }
+
+  return { context: context as any, hooks }
+}
+
+async function getHooks() {
+  const { context, hooks } = createPluginContext()
+  await OpenCodeAxonHubTracing.setup(context)
+  return hooks
+}
+
 afterEach(() => {
   resetEnv()
 })
 
-async function getHeadersHook() {
-  const hooks = await OpenCodeAxonHubTracing({} as any)
-  return hooks["chat.headers"]!
-}
+describe("session request hooks", () => {
+  it("injects default headers for the latest prompt", async () => {
+    const hooks = await getHooks()
+    const headers: Record<string, string> = {}
 
-describe("chat.headers hook", () => {
-  it("injects default header keys", async () => {
-    const hook = await getHeadersHook()
-    const output = { headers: {} as Record<string, string> }
+    await hooks.prompt({ sessionID: "ses_123", messageID: "msg_456" })
+    await hooks["model.request"]({ sessionID: "ses_123", headers })
 
-    await hook(
-      { sessionID: "ses_123", message: { id: "msg_456" } } as any,
-      output,
-    )
-
-    expect(output.headers["AH-Thread-Id"]).toBe("ses_123")
-    expect(output.headers["AH-Trace-Id"]).toBe("msg_456")
+    expect(headers["AH-Thread-Id"]).toBe("ses_123")
+    expect(headers["AH-Trace-Id"]).toBe("msg_456")
   })
 
   it("injects configured header keys from environment", async () => {
     process.env.OPENCODE_AXONHUB_TRACING_THREAD_HEADER = "X-Thread"
     process.env.OPENCODE_AXONHUB_TRACING_TRACE_HEADER = "X-Trace"
 
-    const hook = await getHeadersHook()
-    const output = { headers: {} as Record<string, string> }
+    const hooks = await getHooks()
+    const headers: Record<string, string> = {}
 
-    await hook(
-      { sessionID: "ses_abc", message: { id: "msg_def" } } as any,
-      output,
-    )
+    await hooks.prompt({ sessionID: "ses_abc", messageID: "msg_def" })
+    await hooks["model.request"]({ sessionID: "ses_abc", headers })
 
-    expect(output.headers["X-Thread"]).toBe("ses_abc")
-    expect(output.headers["X-Trace"]).toBe("msg_def")
-    expect(output.headers["AH-Thread-Id"]).toBeUndefined()
-    expect(output.headers["AH-Trace-Id"]).toBeUndefined()
+    expect(headers["X-Thread"]).toBe("ses_abc")
+    expect(headers["X-Trace"]).toBe("msg_def")
+    expect(headers["AH-Thread-Id"]).toBeUndefined()
+    expect(headers["AH-Trace-Id"]).toBeUndefined()
   })
 
-  it("only injects thread header when message id is missing", async () => {
-    const hook = await getHeadersHook()
-    const output = { headers: {} as Record<string, string> }
+  it("only injects the thread header before a prompt is admitted", async () => {
+    const hooks = await getHooks()
+    const headers: Record<string, string> = {}
 
-    await hook(
-      { sessionID: "ses_no_msg" } as any,
-      output,
-    )
+    await hooks["model.request"]({ sessionID: "ses_no_msg", headers })
 
-    expect(output.headers["AH-Thread-Id"]).toBe("ses_no_msg")
-    expect(output.headers["AH-Trace-Id"]).toBeUndefined()
+    expect(headers["AH-Thread-Id"]).toBe("ses_no_msg")
+    expect(headers["AH-Trace-Id"]).toBeUndefined()
   })
 
-  it("only injects thread header when message exists without id", async () => {
-    const hook = await getHeadersHook()
-    const output = { headers: {} as Record<string, string> }
+  it("uses the latest prompt message id for a session", async () => {
+    const hooks = await getHooks()
+    const headers: Record<string, string> = {}
 
-    await hook(
-      { sessionID: "ses_empty_msg", message: {} } as any,
-      output,
-    )
+    await hooks.prompt({ sessionID: "ses_reused", messageID: "msg_old" })
+    await hooks.prompt({ sessionID: "ses_reused", messageID: "msg_new" })
+    await hooks["model.request"]({ sessionID: "ses_reused", headers })
 
-    expect(output.headers["AH-Thread-Id"]).toBe("ses_empty_msg")
-    expect(output.headers["AH-Trace-Id"]).toBeUndefined()
-  })
-
-  it("does not throw when output.headers is missing", async () => {
-    const hook = await getHeadersHook()
-
-    await expect(
-      hook({ sessionID: "ses_123" } as any, {} as any),
-    ).resolves.toBeUndefined()
-  })
-
-  it("does not throw when output is undefined", async () => {
-    const hook = await getHeadersHook()
-
-    await expect(
-      hook({ sessionID: "ses_123" } as any, undefined as any),
-    ).resolves.toBeUndefined()
-  })
-
-  it("does not throw when input.sessionID is missing", async () => {
-    const hook = await getHeadersHook()
-    const output = { headers: {} as Record<string, string> }
-
-    await expect(
-      hook({} as any, output),
-    ).resolves.toBeUndefined()
-
-    expect(Object.keys(output.headers)).toHaveLength(0)
+    expect(headers["AH-Trace-Id"]).toBe("msg_new")
   })
 
   it("falls back to default keys when env vars are blank", async () => {
     process.env.OPENCODE_AXONHUB_TRACING_THREAD_HEADER = "   "
     process.env.OPENCODE_AXONHUB_TRACING_TRACE_HEADER = ""
 
-    const hook = await getHeadersHook()
-    const output = { headers: {} as Record<string, string> }
+    const hooks = await getHooks()
+    const headers: Record<string, string> = {}
 
-    await hook(
-      { sessionID: "ses_blank", message: { id: "msg_blank" } } as any,
-      output,
-    )
+    await hooks.prompt({ sessionID: "ses_blank", messageID: "msg_blank" })
+    await hooks["model.request"]({ sessionID: "ses_blank", headers })
 
-    expect(output.headers["AH-Thread-Id"]).toBe("ses_blank")
-    expect(output.headers["AH-Trace-Id"]).toBe("msg_blank")
+    expect(headers["AH-Thread-Id"]).toBe("ses_blank")
+    expect(headers["AH-Trace-Id"]).toBe("msg_blank")
   })
 
   it("only exports default", async () => {
     const mod = await import("./index")
-    const namedExports = Object.keys(mod).filter((k) => k !== "default")
+    const namedExports = Object.keys(mod).filter((key) => key !== "default")
     expect(namedExports).toHaveLength(0)
   })
 })
