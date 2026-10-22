@@ -1,0 +1,64 @@
+name: 建议与讨论 / Discussion & Proposal
+description: 讨论尚未确定方案的功能或工程改进 / Discuss an undecided feature or engineering improvement
+title: "[Idea]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提出想法和建议！提交前请先搜索现有 issues，避免重复。
+        Please search existing issues before submitting a duplicate.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前检查 / Pre-submission Checklist
+      options:
+        - label: 我已搜索现有 issues，此议题尚未被讨论 / I searched existing issues and this topic has not been discussed
+          required: true
+
+  - type: dropdown
+    id: proposal_type
+    attributes:
+      label: 提案类型 / Proposal Type
+      multiple: true
+      options:
+        - New feature / 新功能
+        - Architecture improvement / 架构改进
+        - Performance optimization / 性能优化
+        - API design / API 设计
+        - Engineering practice / 工程实践
+        - Other / 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景与动机 / Background & Motivation
+      description: 当前遇到什么问题，为什么需要讨论？/ What problem motivates this discussion?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案描述 / Proposal Description
+      description: 详细描述你的想法、建议或需要决策的问题 / Describe the proposal or decision needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: 预期收益 / Expected Benefits
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: 可能的实现方式 / Possible Implementation
+      description: 可选，描述初步实现思路 / Optional initial implementation ideas
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 附加信息 / Additional Context

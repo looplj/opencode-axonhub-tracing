@@ -1,0 +1,78 @@
+name: Bug 报告 / Bug Report
+description: 报告一个可复现的问题 / Report a reproducible problem
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交问题报告！详细的信息有助于快速定位问题。
+        Please search existing issues before submitting a duplicate.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前检查 / Pre-submission Checklist
+      options:
+        - label: 我已搜索现有 issues，此问题尚未被报告 / I searched existing issues and this problem has not been reported
+          required: true
+        - label: 我可以稳定复现此问题 / I can reliably reproduce this problem
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题描述 / Problem Description
+      description: 请描述实际发生了什么，并提供完整的复现步骤 / Describe what happened and provide reproducible steps
+      placeholder: |
+        复现步骤 / Steps to reproduce:
+        1. 执行命令...
+        2. 使用配置...
+        3. 观察到错误...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为 / Expected Behavior
+      description: 请描述正常情况下应该发生什么 / Describe what should have happened
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 涉及组件 / Affected Component
+      options:
+        - Plugin hook / 插件 hook
+        - Header configuration / Header 配置
+        - OpenCode integration / OpenCode 集成
+        - Build or test / 构建或测试
+        - Documentation / 文档
+        - Other / 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息 / Environment
+      value: |
+        - opencode-axonhub-tracing 版本 / Version:
+        - 操作系统 / OS:
+        - Bun 版本 / Bun Version:
+        - OpenCode 版本 / OpenCode Version:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志 / Relevant Logs
+      description: 请移除密码、API key、token 和其他敏感信息 / Remove passwords, API keys, tokens, and other sensitive data
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 附加信息 / Additional Context
